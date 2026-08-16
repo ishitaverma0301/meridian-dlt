@@ -65,7 +65,7 @@ resources:
       schema_name: ${resources.schemas.gold_schema.name}
       name: sql_artifacts
       volume_type: MANAGED
-      comment: Externalized Gold SQL — one .sql file per table, loaded at runtime by 03_gold.py. Edit here, no redeploy needed.
+      comment: Externalized Gold SQL — one .sql file per table, loaded at runtime by gold_transformation.py. Edit here, no redeploy needed.
 
   # --- Lakeflow Declarative Pipeline ------------------------------------------
   # Bronze uses the pipeline's default schema (bronze); Silver and Gold each
@@ -74,11 +74,11 @@ resources:
   # per-file "schema=" bundle setting, the qualified name in the SQL/Python is
   # the mechanism.
   #
-  # Gold is ONE registered pipeline source file (03_gold.py), not eight. The
+  # Gold is ONE registered pipeline source file (gold_transformation.py), not eight. The
   # actual SQL for each of the 8 Gold tables lives as plain .sql files in the
   # sql_artifacts Volume — read and registered dynamically at pipeline-graph
   # resolution time, so an aggregation's logic can change without touching
-  # pipeline code. See src/pipeline/gold/*.sql (uploaded to the Volume, not
+  # pipeline code. See src/pipeline/sql_artifacts/*.sql (uploaded to the Volume, not
   # part of this `libraries` list — they're data artifacts, not pipeline
   # source code).
   pipelines:
@@ -90,11 +90,11 @@ resources:
       continuous: false
       libraries:
         - notebook:
-            path: ./src/pipeline/01_bronze.py
+            path: ./src/pipeline/bronze_ingestion.py
         - notebook:
-            path: ./src/pipeline/02_silver.py
+            path: ./src/pipeline/silver_dqcheck.py
         - notebook:
-            path: ./src/pipeline/03_gold.py
+            path: ./src/pipeline/gold_transformation.py
 
   # --- Orchestration -----------------------------------------------------------
   jobs:

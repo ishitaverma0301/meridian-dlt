@@ -1,6 +1,6 @@
 -- Query behind the `meridian_run_summary` SQL Alert.
 --
--- Deliberately dumb: build_run_summary.py has already done all the work and
+-- Deliberately dumb: run_summary.py has already done all the work and
 -- persisted it. This just selects the newest run and shapes it for the email.
 --
 -- NO CUSTOM EMAIL TEMPLATE. The alert runs on the v2 alerts engine, which does
@@ -25,7 +25,7 @@
 -- leads with what matters.
 
 -- Scoped on generated_at, NOT run_id. `run_id` is the pipeline update id, which
--- does not change when build_run_summary is re-run against the same update — so
+-- does not change when run_summary is re-run against the same update — so
 -- filtering by it returns every report built for that update and the email shows
 -- each row two or three times. `generated_at` is stamped once per notebook
 -- execution and is identical across all rows of one report, so equality against
