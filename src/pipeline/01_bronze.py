@@ -1,19 +1,11 @@
 # Databricks notebook source
-# MAGIC %md
-# MAGIC # Bronze Layer
-# MAGIC
-# MAGIC Streaming table, Auto Loader off the `raw_landing` Volume. The pipeline
-# MAGIC manages its own checkpoint/schema-inference state internally, so
-# MAGIC there's no hand-specified checkpoint path to accidentally nest inside
-# MAGIC the scanned source directory (`SCHEMA_PATH` below lives in a separate
-# MAGIC `pipeline_internals` Volume, not under `raw_landing`).
-
-# COMMAND ----------
-
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
 RAW_VOLUME_PATH = "/Volumes/meridian/bronze/raw_landing"
+# Deliberately a sibling of raw_landing, not nested inside it — Auto Loader
+# scans RAW_VOLUME_PATH recursively, so schema-inference state must live
+# outside the tree it's scanning.
 SCHEMA_PATH = "/Volumes/meridian/bronze/pipeline_internals/flights_schema"
 
 # COMMAND ----------
@@ -23,10 +15,8 @@ SCHEMA_PATH = "/Volumes/meridian/bronze/pipeline_internals/flights_schema"
     comment="Raw BTS On-Time Performance records, landed via Auto Loader from raw_landing.",
     table_properties={
         "quality": "bronze",
-        # NOTE: temporarily "true" to allow a one-off Full Refresh that rebuilds
-        # Bronze from raw_landing. Set back to "false" immediately afterwards —
-        # normally this guard is what stops a full reset from wiping Bronze and
-        # forcing Auto Loader to reprocess the entire Volume from scratch.
+        # A full pipeline reset would otherwise wipe bronze and force
+        # Auto Loader to reprocess the entire Volume from scratch.
         "pipelines.reset.allowed": "true",
     },
 )

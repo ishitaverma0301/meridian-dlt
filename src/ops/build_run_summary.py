@@ -1,4 +1,9 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
+# Databricks notebook source
 # MAGIC %md
 # MAGIC # Run Summary — observability layer
 # MAGIC

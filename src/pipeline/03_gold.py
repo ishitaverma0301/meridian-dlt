@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Gold Layer
+# MAGIC ### Gold Layer
 # MAGIC
 # MAGIC The only pipeline source file for all 8 Gold tables. Each table's SQL
 # MAGIC lives as a plain `.sql` file in the `sql_artifacts` Volume, not in this
@@ -8,9 +8,7 @@
 # MAGIC loops over the list, reads each file's text, and registers a
 # MAGIC materialized view from it.
 # MAGIC
-# MAGIC This mirrors the AWS design closely: `transformation.py` loaded
-# MAGIC `sql_artifacts/gold/*.sql` from S3 at runtime via `load_sql_artifact()`
-# MAGIC and ran each with `spark.sql(sql_query)` — the whole point being that an
+# MAGIC The whole point being that an
 # MAGIC analyst can edit the aggregation logic without redeploying the job. Same
 # MAGIC contract here: edit a `.sql` file in the Volume, re-run the pipeline,
 # MAGIC done — nothing in this script changes.

@@ -1,0 +1,57 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "severity_rank",
+      "display": "source",
+      "aggregation": "MAX"
+    },
+    "comparison_operator": "GREATER_THAN_OR_EQUAL",
+    "threshold": {
+      "value": {
+        "double_value": 2.0
+      }
+    },
+    "notification": {
+      "retrigger_seconds": 1
+    }
+  },
+  "schedule": {
+    "quartz_cron_schedule": "41 27 23 16 * ?",
+    "timezone_id": "Asia/Calcutta"
+  },
+  "query_lines": [
+    "-- Query behind the `meridian_run_summary` SQL Alert.",
+    "--",
+    "-- Deliberately dumb: build_run_summary.py has already done all the work and",
+    "-- persisted it. This just selects the newest run and shapes it for the email.",
+    "--",
+    "-- Alert condition: aggregate MAX on `severity_rank`.",
+    "--   >= 1  email every run (INFO and above)",
+    "--   >= 2  email only when something is amber or worse   <-- recommended",
+    "--   >= 3  email only on errors",
+    "--",
+    "-- The template renders at most 100 rows, hence the LIMIT — the report is",
+    "-- ordered worst-first inside each section by `seq`, so a truncated email still",
+    "-- leads with what matters.",
+    "",
+    "WITH latest AS (",
+    "  SELECT MAX(generated_at) AS generated_at",
+    "  FROM meridian.ops.run_summary",
+    ")",
+    "SELECT",
+    "  CASE s.severity",
+    "    WHEN 'ERROR' THEN '🔴'",
+    "    WHEN 'WARN'  THEN '🟡'",
+    "    ELSE '🟢'",
+    "  END                AS status,",
+    "  s.section,",
+    "  s.metric,",
+    "  s.value,",
+    "  s.detail,",
+    "  s.severity_rank",
+    "FROM meridian.ops.run_summary s",
+    "JOIN latest l ON s.generated_at = l.generated_at",
+    "ORDER BY s.seq",
+    "LIMIT 100"
+  ]
+}

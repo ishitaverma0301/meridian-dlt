@@ -1,17 +1,20 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
-# MAGIC # Fetch BTS Months
+# MAGIC ### Fetch BTS Months
 # MAGIC
 # MAGIC Lands raw BTS On-Time Performance monthly ZIPs as CSV files in the
 # MAGIC `raw_landing` Volume. This is the **only** job of this task — it does not
 # MAGIC write to any Bronze/Silver table. The downstream Lakeflow Declarative
-# MAGIC Pipeline owns everything from the Volume onward.
+# MAGIC Pipeline (`src/pipeline/flights_pipeline.py`) owns everything from the
+# MAGIC Volume onward.
 # MAGIC
 # MAGIC Design choice: there is **no separate watermark table**. "What's already
 # MAGIC landed" is derived by listing the Volume itself on every run. That makes
-# MAGIC this task idempotent and safe to run concurrently or re-trigger — there's
-# MAGIC no mutable cursor that two overlapping runs can race on and leave in an
-# MAGIC inconsistent state.
+# MAGIC this task idempotent and safe to run concurrently or re-trigger.
 
 # COMMAND ----------
 
@@ -49,7 +52,7 @@ CURRENT_YM = datetime.now(timezone.utc).strftime("%Y-%m")
 
 # COMMAND ----------
 
-# MAGIC %md ## YYYY-MM helpers
+# MAGIC %md ### YYYY-MM helpers
 
 # COMMAND ----------
 
@@ -82,11 +85,10 @@ def ym_range(start_ym, end_ym):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Discover already-landed months
+# MAGIC ### Discover already-landed months
 # MAGIC
-# MAGIC Replaces the old `ops.watermark` table. The Volume itself is the source
-# MAGIC of truth for "what have we already fetched" — nothing to fall out of
-# MAGIC sync, nothing to race.
+# MAGIC  The Volume itself is the source
+# MAGIC of truth for "what have we already fetched"
 
 # COMMAND ----------
 
@@ -140,7 +142,7 @@ def resolve_window():
 
 # COMMAND ----------
 
-# MAGIC %md ## Download + land one month
+# MAGIC %md ### Download & Land One Month
 
 # COMMAND ----------
 
@@ -222,12 +224,11 @@ def fetch_month(year, month):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Event log (observability only — never read back to drive control flow)
+# MAGIC ### Event log (observability only — never read back to drive control flow)
 # MAGIC
 # MAGIC This is append-only and exists purely so a Lakeview dashboard / SQL alert
 # MAGIC can show ingestion health. Nothing in this notebook re-reads it to decide
-# MAGIC what to do next — that coupling is exactly what caused the watermark race
-# MAGIC in the previous design.
+# MAGIC what to do next.
 
 # COMMAND ----------
 
@@ -250,7 +251,7 @@ def log_events(rows):
 
 # COMMAND ----------
 
-# MAGIC %md ## Main
+# MAGIC %md ### Main
 
 # COMMAND ----------
 
