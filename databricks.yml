@@ -16,7 +16,7 @@ variables:
     default: meridian
   notification_email:
     description: Address to notify on job failure.
-    default: ishita.mahajan0301@gmail.com
+    default: <your-notification-email>
 
 resources:
   # --- Unity Catalog objects -------------------------------------------------
