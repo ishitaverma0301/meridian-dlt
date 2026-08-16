@@ -1,0 +1,134 @@
+# Databricks Asset Bundle for the Meridian flights ingestion pipeline.
+#
+# Deploy:   databricks bundle deploy -t dev
+# Run once: databricks bundle run flights_ingestion_job -t dev
+#
+# This bundle owns the full path: Unity Catalog objects -> the acquisition
+# job -> the Lakeflow Declarative Pipeline -> the schedule/notifications that
+# tie them together. Nothing here is created by hand in the workspace UI.
+
+bundle:
+  name: meridian_flights
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds every object this bundle creates.
+    default: meridian
+  notification_email:
+    description: Address to notify on job failure.
+    default: ishita.mahajan0301@gmail.com
+
+resources:
+  # --- Unity Catalog objects -------------------------------------------------
+  # Requires Databricks CLI 0.287.0+ (direct deployment engine) for the
+  # `catalogs` resource type. If your CLI is older, or the catalog is managed
+  # elsewhere, drop this block and pre-create the catalog manually — schemas
+  # and volumes below only need the catalog to already exist.
+  catalogs:
+    meridian_catalog:
+      name: ${var.catalog}
+      comment: Meridian flights lakehouse — bronze/silver/gold + ops metadata.
+
+  schemas:
+    bronze_schema:
+      catalog_name: ${var.catalog}
+      name: bronze
+      comment: Landing zone volume, pipeline-internal state, and the bronze streaming table.
+    silver_schema:
+      catalog_name: ${var.catalog}
+      name: silver
+      comment: DQ-checked clean and rejected flight records.
+    gold_schema:
+      catalog_name: ${var.catalog}
+      name: gold
+      comment: Aggregated analytics tables.
+    ops_schema:
+      catalog_name: ${var.catalog}
+      name: ops
+      comment: Pipeline operational metadata (ingestion event log).
+
+  volumes:
+    raw_landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.bronze_schema.name}
+      name: raw_landing
+      volume_type: MANAGED
+      comment: Raw BTS monthly CSVs, landed by the fetch_bts_months job task.
+    pipeline_internals:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.bronze_schema.name}
+      name: pipeline_internals
+      volume_type: MANAGED
+      comment: Auto Loader schema-inference state — kept out of raw_landing so the scanned source tree and pipeline metadata never mix.
+    sql_artifacts:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.gold_schema.name}
+      name: sql_artifacts
+      volume_type: MANAGED
+      comment: Externalized Gold SQL — one .sql file per table, loaded at runtime by 03_gold.py. Edit here, no redeploy needed.
+
+  # --- Lakeflow Declarative Pipeline ------------------------------------------
+  # Bronze uses the pipeline's default schema (bronze); Silver and Gold each
+  # publish to their own schema via fully-qualified names in the table
+  # definitions themselves (Lakeflow's default publishing mode) — there is no
+  # per-file "schema=" bundle setting, the qualified name in the SQL/Python is
+  # the mechanism.
+  #
+  # Gold is ONE registered pipeline source file (03_gold.py), not eight. The
+  # actual SQL for each of the 8 Gold tables lives as plain .sql files in the
+  # sql_artifacts Volume — read and registered dynamically at pipeline-graph
+  # resolution time, so an aggregation's logic can change without touching
+  # pipeline code. See src/pipeline/gold/*.sql (uploaded to the Volume, not
+  # part of this `libraries` list — they're data artifacts, not pipeline
+  # source code).
+  pipelines:
+    flights_pipeline:
+      name: meridian_flights_pipeline
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.bronze_schema.name}
+      photon: true
+      continuous: false
+      libraries:
+        - notebook:
+            path: ./src/pipeline/01_bronze.py
+        - notebook:
+            path: ./src/pipeline/02_silver.py
+        - notebook:
+            path: ./src/pipeline/03_gold.py
+
+  # --- Orchestration -----------------------------------------------------------
+  jobs:
+    flights_ingestion_job:
+      name: meridian_flights_ingestion
+      max_concurrent_runs: 1 # the whole point: no two runs can ever race on the same state
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?" # 07:00 UTC daily
+        timezone_id: UTC
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tasks:
+        - task_key: fetch_bts_months
+          notebook_task:
+            notebook_path: ./src/acquisition/fetch_bts_months.py
+            base_parameters:
+              reprocess: "False"
+          retry_on_timeout: true
+          max_retries: 2
+          min_retry_interval_millis: 60000
+        - task_key: refresh_pipeline
+          depends_on:
+            - task_key: fetch_bts_months
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flights_pipeline.id}
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://<your-workspace-host>
+  prod:
+    mode: production
+    workspace:
+      host: https://<your-workspace-host>
