@@ -101,8 +101,14 @@ resources:
     flights_ingestion_job:
       name: meridian_flights_ingestion
       max_concurrent_runs: 1 # the whole point: no two runs can ever race on the same state
+      # Monthly, matching the cadence of the source. BTS publishes a month's
+      # data ~6-7 weeks after that month ends, and acquisition already refuses
+      # to reach for anything younger than PUBLISH_LAG_MONTHS (2), so a daily
+      # trigger spent 29 runs a month re-listing the Volume and landing nothing.
+      # The 16th is chosen to line up with the meridian_run_summary alert, which
+      # fires the same day at 17:57 UTC — comfortably after this job finishes.
       schedule:
-        quartz_cron_expression: "0 0 7 * * ?" # 07:00 UTC daily
+        quartz_cron_expression: "0 0 7 16 * ?" # 07:00 UTC, 16th of each month
         timezone_id: UTC
       email_notifications:
         on_failure:

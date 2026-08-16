@@ -27,12 +27,14 @@
 --   Retrigger:  1 second
 --   Schedule:   quartz `41 27 23 16 * ?`, Asia/Calcutta
 --
--- That cron is almost certainly not what you want: it fires at 23:27:41 on the
--- 16th of each month — a one-off timestamp from when the alert was created, not
--- a cadence. The ingestion job runs daily at 07:00 UTC, so the alert reports on
--- at most one of roughly thirty runs, and never within the same day as the run
--- it describes. A daily schedule shortly after the job's expected finish is the
--- sane setting.
+-- Monthly on the 16th, which is intentional: the source publishes monthly, so
+-- the ingestion job runs on the 16th too (07:00 UTC). This alert's 23:27:41
+-- Asia/Calcutta is 17:57 UTC — same day, ~11 hours after the job starts, so it
+-- reports on that run rather than the previous month's.
+--
+-- The seconds/minutes are a leftover from whenever the alert was created. They
+-- are harmless, but if you ever move the job's time, move this with it and keep
+-- the gap.
 --
 -- The template renders at most 100 rows, hence the LIMIT — the report is
 -- ordered worst-first inside each section by `seq`, so a truncated email still
