@@ -15,8 +15,7 @@
 -- `seq` so the default renderer shows the report in the right order. Formatting
 -- that lives in SQL survives any renderer.
 --
--- STATUS: this is the deployed alert. `run_digest_alert.sql` is an alternative
--- approach that was never created in the workspace.
+-- STATUS: this is the deployed alert, and the only one.
 --
 -- Alert condition: aggregate MAX on `severity_rank`.
 --   >= 1  email every run (INFO and above)

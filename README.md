@@ -136,8 +136,7 @@ meridian/
 │   ├── ops/
 │   │   └── run_summary.py               # Builds the per-run operational summary table
 │   └── alerts/
-│       ├── run_summary_alert.sql        # Query behind the run-summary SQL Alert
-│       └── run_digest_alert.sql         # Query behind the digest SQL Alert
+│       └── run_summary_alert.sql        # Query behind the run-summary SQL Alert
 ```
 
 > Filenames match the notebook names in the Databricks workspace, so a Git folder
