@@ -121,6 +121,17 @@ resources:
             - task_key: fetch_bts_months
           pipeline_task:
             pipeline_id: ${resources.pipelines.flights_pipeline.id}
+        # Builds meridian.ops.run_summary, which the SQL Alerts in src/alerts/
+        # read. run_if: ALL_DONE because a run report is most valuable on the
+        # runs that failed — the default (ALL_SUCCESS) would skip this task in
+        # exactly the case worth reporting on. The notebook takes no parameters;
+        # it derives the update and acquisition ids by querying for them.
+        - task_key: build_run_summary
+          depends_on:
+            - task_key: refresh_pipeline
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ./src/ops/run_summary.py
 
 targets:
   dev:

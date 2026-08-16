@@ -15,10 +15,25 @@
 -- `seq` so the default renderer shows the report in the right order. Formatting
 -- that lives in SQL survives any renderer.
 --
+-- STATUS: this is the deployed alert. `run_digest_alert.sql` is an alternative
+-- approach that was never created in the workspace.
+--
 -- Alert condition: aggregate MAX on `severity_rank`.
 --   >= 1  email every run (INFO and above)
 --   >= 2  email only when something is amber or worse   <-- recommended
 --   >= 3  email only on errors
+--
+-- AS CURRENTLY CONFIGURED IN THE WORKSPACE:
+--   Condition:  MAX(severity_rank) >= 2.0          (the recommended setting)
+--   Retrigger:  1 second
+--   Schedule:   quartz `41 27 23 16 * ?`, Asia/Calcutta
+--
+-- That cron is almost certainly not what you want: it fires at 23:27:41 on the
+-- 16th of each month — a one-off timestamp from when the alert was created, not
+-- a cadence. The ingestion job runs daily at 07:00 UTC, so the alert reports on
+-- at most one of roughly thirty runs, and never within the same day as the run
+-- it describes. A daily schedule shortly after the job's expected finish is the
+-- sane setting.
 --
 -- The template renders at most 100 rows, hence the LIMIT — the report is
 -- ordered worst-first inside each section by `seq`, so a truncated email still

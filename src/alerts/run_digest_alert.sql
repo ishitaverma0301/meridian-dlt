@@ -1,5 +1,14 @@
 -- Query behind the `meridian_run_digest` SQL Alert.
 --
+-- STATUS: NOT DEPLOYED. No such alert exists in the workspace; the live one is
+-- `meridian_run_summary` (run_summary_alert.sql). Kept for reference.
+--
+-- Before reviving this, resolve the contradiction between the two files: the
+-- premise below is that query results never reach the inbox, while
+-- run_summary_alert.sql states the default notification does carry the result
+-- table. Both cannot be true, and the one in production is the other file.
+-- Check an actual notification email before building on either claim.
+--
 -- WHY THIS EXISTS. The v2 alerts engine does not interpolate query results into
 -- the notification body — {{QUERY_RESULT_TABLE}} and {{#QUERY_RESULT_ROWS}} come
 -- through the email literally, Markdown-escaped. The only part of the query that
